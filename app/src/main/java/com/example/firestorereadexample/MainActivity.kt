@@ -2,12 +2,12 @@ package com.example.firestorereadexample
 
 import android.app.Activity.RESULT_OK
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Favorite
@@ -18,25 +18,24 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.traceEventStart
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.firestorereadexample.ui.theme.FirestoreReadExampleTheme
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.QuerySnapshot
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.ktx.app
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,7 +49,13 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-val TAG = "FirestoreRead"
+val TAG = "ReadBenchmark"
+
+val auth: FirebaseAuth = FirebaseAuth.getInstance()
+val data
+    get() = FirebaseFirestore.getInstance()
+
+val FunctionToTest: () -> Unit = { testSmallCollection() }
 
 @PreviewScreenSizes
 @Composable
@@ -74,8 +79,13 @@ fun FirestoreReadExampleApp() {
             }
         }
     ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            LoginComposable(Modifier.padding(innerPadding))
+        Scaffold(modifier = Modifier.fillMaxSize()) { _ ->
+            LoginComposable()
+        }
+    }
+    CheckLifecycle {
+        if (auth.currentUser != null) {
+            FunctionToTest()
         }
     }
 }
@@ -98,45 +108,82 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun LoginComposable(modifier: Modifier = Modifier) {
+fun LoginComposable() {
     val mirrorLoginLauncher =
         rememberLauncherForActivityResult(contract = FirebaseAuthUIActivityResultContract()) { result ->
             if (result.resultCode == RESULT_OK) {
-                android.util.Log.d(TAG, "Logged in")
-                TestFetching()
+                   FunctionToTest()
             }
         }
-    // Choose authentication providers
-    LaunchedEffect(Unit) {
-        val providers = arrayListOf(
-            AuthUI.IdpConfig.GoogleBuilder().build()
-        )
-        // Create and launch sign-in intent
-        val signInIntent = AuthUI.getInstance()
-            .createSignInIntentBuilder()
-            .setAvailableProviders(providers)
-            .build()
-        mirrorLoginLauncher.launch(signInIntent)
+    if (auth.currentUser == null) {
+        LaunchedEffect(Unit) {
+            val providers = arrayListOf(
+                AuthUI.IdpConfig.GoogleBuilder().build()
+            )
+            // Create and launch sign-in intent
+            val signInIntent = AuthUI.getInstance()
+                .createSignInIntentBuilder()
+                .setAvailableProviders(providers)
+                .build()
+            mirrorLoginLauncher.launch(signInIntent)
+        }
     }
+
 }
 
-fun TestFetching() {
-    val data = FirebaseFirestore.getInstance()
-    val auth: FirebaseAuth = FirebaseAuth.getInstance()
+fun testLargeCollection() {
     val userRef = if (auth.currentUser != null) data.collection("users")
         .document(auth.currentUser!!.uid) else null
 
     val transactionRef = userRef?.collection("transactions")
 
-    val timeNow = System.currentTimeMillis()
+    Log.d(TAG, "Creating query")
     transactionRef?.addSnapshotListener { querySnapshot: QuerySnapshot?, exception: FirebaseFirestoreException? ->
         if (exception != null) {
-            android.util.Log.e(TAG,"caught exception", exception)
+            Log.e(TAG, "caught exception", exception)
         } else {
-            android.util.Log.d(TAG, "${querySnapshot?.size()}items  took ${System.currentTimeMillis() - timeNow } ms.")
+            Log.d(TAG, "Received ${querySnapshot?.size()} documents")
         }
     }
 
+}
+
+fun testSmallCollection() {
+    val userRef = if (auth.currentUser != null) data.collection("users")
+        .document(auth.currentUser!!.uid) else null
+
+    val transactionRef = userRef?.collection("accounts")
+    Log.d(TAG, "Creating query")
+    transactionRef?.addSnapshotListener { querySnapshot: QuerySnapshot?, exception: FirebaseFirestoreException? ->
+        if (exception != null) {
+            Log.e(TAG, "caught exception", exception)
+        } else {
+            Log.d(TAG, "Received ${querySnapshot?.size()} documents")
+        }
+    }
+}
+
+var skipPossibleFirstOnResume = auth.currentUser == null
+@Composable
+private fun CheckLifecycle(onResume: () -> Unit) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleState by lifecycleOwner.lifecycle.currentStateFlow.collectAsState()
+
+    LaunchedEffect(lifecycleState) {
+        when (lifecycleState) {
+            Lifecycle.State.RESUMED -> {
+                if (!skipPossibleFirstOnResume) {
+                    onResume()
+                }
+                skipPossibleFirstOnResume = false
+            }
+
+            else -> {
+                // no-op
+            }
+        }
+
+    }
 }
 
 @Preview(showBackground = true)
