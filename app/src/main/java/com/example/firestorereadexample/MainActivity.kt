@@ -1,5 +1,6 @@
 package com.example.firestorereadexample
 
+import android.annotation.SuppressLint
 import android.app.Activity.RESULT_OK
 import android.os.Bundle
 import android.util.Log
@@ -57,6 +58,7 @@ val data
 
 val FunctionToTest: () -> Unit = { testSmallCollection() }
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @PreviewScreenSizes
 @Composable
 fun FirestoreReadExampleApp() {
@@ -112,7 +114,7 @@ fun LoginComposable() {
     val mirrorLoginLauncher =
         rememberLauncherForActivityResult(contract = FirebaseAuthUIActivityResultContract()) { result ->
             if (result.resultCode == RESULT_OK) {
-                   FunctionToTest()
+                FunctionToTest()
             }
         }
     if (auth.currentUser == null) {
@@ -140,9 +142,9 @@ fun testLargeCollection() {
     Log.d(TAG, "Creating query")
     transactionRef?.addSnapshotListener { querySnapshot: QuerySnapshot?, exception: FirebaseFirestoreException? ->
         if (exception != null) {
-            Log.e(TAG, "caught exception", exception)
+            Log.i(TAG, "caught exception", exception)
         } else {
-            Log.d(TAG, "Received ${querySnapshot?.size()} documents")
+            Log.i(TAG, "Received ${querySnapshot?.size()} documents")
         }
     }
 
@@ -153,17 +155,18 @@ fun testSmallCollection() {
         .document(auth.currentUser!!.uid) else null
 
     val transactionRef = userRef?.collection("accounts")
-    Log.d(TAG, "Creating query")
+    Log.i(TAG, "Creating query")
     transactionRef?.addSnapshotListener { querySnapshot: QuerySnapshot?, exception: FirebaseFirestoreException? ->
         if (exception != null) {
             Log.e(TAG, "caught exception", exception)
         } else {
-            Log.d(TAG, "Received ${querySnapshot?.size()} documents")
+            Log.i(TAG, "Received ${querySnapshot?.size()} documents")
         }
     }
 }
 
 var skipPossibleFirstOnResume = auth.currentUser == null
+
 @Composable
 private fun CheckLifecycle(onResume: () -> Unit) {
     val lifecycleOwner = LocalLifecycleOwner.current
