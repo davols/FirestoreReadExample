@@ -56,7 +56,7 @@ val auth: FirebaseAuth = FirebaseAuth.getInstance()
 val data
     get() = FirebaseFirestore.getInstance()
 
-val FunctionToTest: () -> Unit = { testSmallCollection() }
+val FunctionToTest: () -> Unit = { testLargeCollection() }
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @PreviewScreenSizes
