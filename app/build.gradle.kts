@@ -28,7 +28,16 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig  = signingConfigs.getByName("debug")
         }
+    }
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("../debug.keystore")
+            println("Debug keystore path: ${storeFile?.absolutePath}")
+            println("Debug keystore exists: ${storeFile?.exists()}")
+        }
+
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

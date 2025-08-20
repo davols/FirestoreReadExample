@@ -36,7 +36,11 @@ import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.FirebaseFirestoreSettings
+import com.google.firebase.firestore.FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED
 import com.google.firebase.firestore.QuerySnapshot
+import com.google.firebase.firestore.firestoreSettings
+import com.google.firebase.firestore.persistentCacheSettings
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,6 +67,13 @@ val FunctionToTest: () -> Unit = { testLargeCollection() }
 @Composable
 fun FirestoreReadExampleApp() {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
+    val settings = firestoreSettings {
+        // Use persistent disk cache (default)
+        setLocalCacheSettings(persistentCacheSettings {
+            setSizeBytes(CACHE_SIZE_UNLIMITED)
+        })
+    }
+    data.firestoreSettings = settings
 
     NavigationSuiteScaffold(
         navigationSuiteItems = {
