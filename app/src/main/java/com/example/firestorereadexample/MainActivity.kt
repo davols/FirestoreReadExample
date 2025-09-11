@@ -145,6 +145,7 @@ fun LoginComposable() {
 }
 
 fun testLargeCollection() {
+    FirebaseFirestore.setLoggingEnabled(true)
     val userRef = if (auth.currentUser != null) data.collection("users")
         .document(auth.currentUser!!.uid) else null
 
@@ -155,7 +156,7 @@ fun testLargeCollection() {
         if (exception != null) {
             Log.i(TAG, "caught exception", exception)
         } else {
-            Log.i(TAG, "Received ${querySnapshot?.size()} documents")
+            Log.i(TAG, "Received ${querySnapshot?.size()} documents from cache: ${querySnapshot?.metadata?.isFromCache}")
         }
     }
 
