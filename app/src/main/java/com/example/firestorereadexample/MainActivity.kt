@@ -76,10 +76,6 @@ fun FirestoreReadExampleApp() {
             AppDestinations.entries.forEach {
                 item(
                     icon = {
-                        Icon(
-                            it.icon,
-                            contentDescription = it.label
-                        )
                     },
                     label = { Text(it.label) },
                     selected = it == currentDestination,
